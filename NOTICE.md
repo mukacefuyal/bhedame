@@ -1,0 +1,1 @@
+This starter does not include or redistribute the supplied Pinterest screenshots. They were used only as visual reference for general interaction patterns. Replace demo media URLs with content you have rights to publish.
