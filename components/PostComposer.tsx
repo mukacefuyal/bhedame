@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, Fragment, useMemo, useState } from "react";
 import { ArrowLeft, AudioLines, Image as ImageIcon, Link2, LoaderCircle, Type, UploadCloud, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import type { MediaType } from "@/lib/types";
 import { getVisitorId } from "@/lib/visitor";
 import { authFetch } from "@/lib/authFetch";
 import { useAuth } from "./AuthProvider";
+import { useI18n } from "./I18nProvider";
 
 const tabs: { value: MediaType; label: string; icon: typeof ImageIcon }[] = [
   { value: "image", label: "Image", icon: ImageIcon },
@@ -21,9 +22,20 @@ const tabs: { value: MediaType; label: string; icon: typeof ImageIcon }[] = [
 
 const categories = ["Satire", "Politics", "Society", "Photos", "Screenshots", "Videos", "Audio", "Hot takes", "Internet archaeology"];
 
+function DraftRichText({ text }: { text: string }) {
+  if (!text.trim()) return null;
+  const parts = text.split(/((?:^|\s)[#@][\p{L}\p{N}_.-]+(?=\s|$|[.,!?;:]))/gu);
+  return <div className="liveTokenPreview">{parts.map((part, index) => {
+    const match = part.match(/^(\s*)([#@][\p{L}\p{N}_.-]+)$/u);
+    if (!match) return <Fragment key={index}>{part}</Fragment>;
+    return <Fragment key={index}>{match[1]}<strong>{match[2]}</strong></Fragment>;
+  })}</div>;
+}
+
 export function PostComposer() {
   const router = useRouter();
   const { displayName, ready, openAccount } = useAuth();
+  const { t } = useI18n();
   const [mediaType, setMediaType] = useState<MediaType>("image");
   const [file, setFile] = useState<File | null>(null);
   const [embedInput, setEmbedInput] = useState("");
@@ -59,6 +71,7 @@ export function PostComposer() {
     e.preventDefault();
     setError("");
     if (!title.trim()) return setError("Give the post a title.");
+    if (!categories.includes(category)) return setError("Choose a category from the list.");
     if (["image", "video", "audio"].includes(mediaType) && !file) return setError(`Choose an ${mediaType === "image" ? "image" : mediaType} file to upload.`);
     if (mediaType === "embed" && !normaliseEmbedUrl(embedInput)) return setError("Paste a valid YouTube or Vimeo link.");
 
@@ -91,7 +104,7 @@ export function PostComposer() {
     <main className="composerPage">
       <div className="composerHeader">
         <Link href="/" className="iconButton"><ArrowLeft size={20} /></Link>
-        <div><span className="kicker">New bheda post</span><h1>Put the receipt on the board.</h1></div>
+        <div><span className="kicker">{t("newPost")}</span><h1>{t("receiptTitle")}</h1></div>
         <button type="button" className="composerAccount" onClick={openAccount}>{displayName}</button>
       </div>
 
@@ -137,16 +150,20 @@ export function PostComposer() {
         </section>
 
         <section className="fieldsPanel">
-          <div className="postingAs"><span>Posting as</span><strong>{displayName}</strong></div>
-          <label>Title<input maxLength={180} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What is the bheda moment?" /></label>
-          <label>Context / caption
+          <div className="postingAs"><span>{t("postingAs")}</span><strong>{displayName}</strong></div>
+          <label>{t("title")}<input maxLength={180} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What is the bheda moment?" /></label>
+          <label>{t("contextCaption")}
             <textarea maxLength={1200} rows={6} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Explain what happened and why it matters. Use #hashtags and @mentions when useful…" />
-            <span className="fieldHint">#hashtags and @mentions become searchable links after publishing.</span>
+            <DraftRichText text={caption} />
+            <span className="fieldHint">Complete a #hashtag or @mention and type a space to preview it in bold colour. Published tags stay searchable.</span>
           </label>
-          <label>Category<select value={category} onChange={(e) => setCategory(e.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label>Original source <span className="optional">recommended</span><input type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
+          <label className="categoryCombo">{t("category")}
+            <input list="bheda-categories" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Search or choose category" />
+            <datalist id="bheda-categories">{categories.map((item) => <option key={item} value={item} />)}</datalist>
+          </label>
+          <label>{t("source")} <span className="optional">{t("recommended")}</span><input type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
           {error ? <div className="formError">{error}</div> : null}
-          <button className="publishButton" disabled={busy || !ready}>{busy ? <><LoaderCircle className="spin" size={19} /> Publishing…</> : "Publish to bheda"}</button>
+          <button className="publishButton" disabled={busy || !ready}>{busy ? <><LoaderCircle className="spin" size={19} /> {t("publishing")}</> : t("publish")}</button>
           <p className="satireNote">Bheda is for calling out herd-thinking, bad public claims and absurd ideas. Add context, avoid doxxing, and critique conduct or ideas rather than protected traits.</p>
         </section>
       </form>
