@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, Send, Share2, X } from "lucide-react";
 import type { Comment, Post } from "@/lib/types";
 import { Media } from "./Media";
@@ -8,8 +8,19 @@ import { RichText } from "./RichText";
 import { getVisitorId } from "@/lib/visitor";
 import { authFetch } from "@/lib/authFetch";
 import { useAuth } from "./AuthProvider";
+import { useI18n } from "./I18nProvider";
 
 const chips = ["Good catch", "Needs context", "That is wild 😂", "Source?", "Classic bheda moment"];
+
+function DraftRichText({ text }: { text: string }) {
+  if (!text.trim()) return null;
+  const parts = text.split(/((?:^|\s)[#@][\p{L}\p{N}_.-]+(?=\s|$|[.,!?;:]))/gu);
+  return <div className="liveTokenPreview">{parts.map((part, index) => {
+    const match = part.match(/^(\s*)([#@][\p{L}\p{N}_.-]+)$/u);
+    if (!match) return <Fragment key={index}>{part}</Fragment>;
+    return <Fragment key={index}>{match[1]}<strong>{match[2]}</strong></Fragment>;
+  })}</div>;
+}
 
 export function PostDetail({ post, onClose, onChanged, onToken }: {
   post: Post;
@@ -18,6 +29,7 @@ export function PostDetail({ post, onClose, onChanged, onToken }: {
   onToken?: (token: string) => void;
 }) {
   const { displayName, ready } = useAuth();
+  const { t } = useI18n();
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
@@ -113,28 +125,22 @@ export function PostDetail({ post, onClose, onChanged, onToken }: {
     <div className="detailBackdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <section className="detailModal" role="dialog" aria-modal="true" aria-label={post.title}>
         <button className="closeFab" onClick={onClose}><X size={22} /></button>
-        <div className="detailMediaPanel">
-          <Media post={post} />
-        </div>
+        <div className="detailMediaPanel"><Media post={post} /></div>
         <div className="detailInfo">
           <div className="detailTopActions">
             <button className="circleAction" onClick={share}><Share2 size={20} /></button>
-            {post.source_url ? (
-              <a className="sourceButton" target="_blank" rel="noreferrer" href={post.source_url}><ExternalLink size={17} /> Visit source</a>
-            ) : null}
+            {post.source_url ? <a className="sourceButton" target="_blank" rel="noreferrer" href={post.source_url}><ExternalLink size={17} /> {t("visitSource")}</a> : null}
           </div>
-          <span className="eyebrow">{post.category} · posted by {post.author_name}</span>
+          <span className="eyebrow">{post.category} · {post.author_name}</span>
           <h1>{post.title}</h1>
           {post.caption ? <p className="detailCaption"><RichText text={post.caption} onToken={onToken} /></p> : null}
           <div className="detailReactionRow">
             <button className={post.user_reaction === 1 ? "bigReact active" : "bigReact"} onClick={() => quickReact(1)}><ArrowUp size={20} /> {post.likes}</button>
             <button className={post.user_reaction === -1 ? "bigReact activeDown" : "bigReact"} onClick={() => quickReact(-1)}><ArrowDown size={20} /> {post.dislikes}</button>
-            <span className="scoreLabel">score {post.score >= 0 ? "+" : ""}{post.score}</span>
+            <span className="scoreLabel">{t("score")} {post.score >= 0 ? "+" : ""}{post.score}</span>
           </div>
-          <div className="commentHeader"><strong>Comments</strong><span>{post.comments_count}</span></div>
-          <div className="quickChips">
-            {chips.map((chip) => <button key={chip} onClick={() => submit(chip)}>{chip}</button>)}
-          </div>
+          <div className="commentHeader"><strong>{t("comments")}</strong><span>{post.comments_count}</span></div>
+          <div className="quickChips">{chips.map((chip) => <button key={chip} onClick={() => submit(chip)}>{chip}</button>)}</div>
           <div className="commentsList">
             {comments.length === 0 ? (
               <div className="emptyComments">Add context, challenge the take, or point people to a source.</div>
@@ -147,11 +153,12 @@ export function PostDetail({ post, onClose, onChanged, onToken }: {
           </div>
           {commentError ? <div className="commentError" role="alert">{commentError}</div> : null}
           <div className="commentComposer">
-            <div className="commentIdentity">Commenting as <strong>{displayName}</strong></div>
+            <div className="commentIdentity">{t("commentAs")} <strong>{displayName}</strong></div>
             <div className="commentInputRow">
-              <input value={body} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="Add a comment, #hashtag or @mention" />
+              <input value={body} onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder={t("addComment")} />
               <button disabled={!body.trim() || sending || !ready} onClick={() => submit()}><Send size={18} /></button>
             </div>
+            <DraftRichText text={body} />
           </div>
         </div>
       </section>
