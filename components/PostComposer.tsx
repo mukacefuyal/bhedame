@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Image as ImageIcon, Link2, LoaderCircle, Type, UploadCloud, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,8 @@ import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import { normaliseEmbedUrl } from "@/lib/embed";
 import type { MediaType } from "@/lib/types";
 import { getVisitorId } from "@/lib/visitor";
+import { authFetch } from "@/lib/authFetch";
+import { useAuth } from "./AuthProvider";
 
 const tabs: { value: MediaType; label: string; icon: typeof ImageIcon }[] = [
   { value: "image", label: "Image", icon: ImageIcon },
@@ -18,6 +20,7 @@ const tabs: { value: MediaType; label: string; icon: typeof ImageIcon }[] = [
 
 export function PostComposer() {
   const router = useRouter();
+  const { displayName, ready, openAccount } = useAuth();
   const [mediaType, setMediaType] = useState<MediaType>("image");
   const [file, setFile] = useState<File | null>(null);
   const [embedInput, setEmbedInput] = useState("");
@@ -25,15 +28,19 @@ export function PostComposer() {
   const [caption, setCaption] = useState("");
   const [category, setCategory] = useState("Satire");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [author, setAuthor] = useState("Guest sheep");
+  const [author, setAuthor] = useState("Anonymous bheda");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const previewUrl = useMemo(() => file ? URL.createObjectURL(file) : "", [file]);
 
+  useEffect(() => {
+    if (ready) setAuthor(displayName);
+  }, [displayName, ready]);
+
   async function uploadSelectedFile() {
     if (!file) return null;
-    const prep = await fetch("/api/uploads/prepare", {
+    const prep = await authFetch("/api/uploads/prepare", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, visitorId: getVisitorId() }),
@@ -61,12 +68,12 @@ export function PostComposer() {
     try {
       const mediaUrl = (mediaType === "image" || mediaType === "video") ? await uploadSelectedFile() : null;
       const embedUrl = mediaType === "embed" ? normaliseEmbedUrl(embedInput) : null;
-      const res = await fetch("/api/posts", {
+      const res = await authFetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(), caption: caption.trim(), category, mediaType,
-          mediaUrl, embedUrl, sourceUrl: sourceUrl.trim(), authorName: author.trim() || "Guest sheep",
+          mediaUrl, embedUrl, sourceUrl: sourceUrl.trim(), authorName: author.trim() || "Anonymous bheda",
           visitorId: getVisitorId(),
         }),
       });
@@ -86,6 +93,7 @@ export function PostComposer() {
       <div className="composerHeader">
         <Link href="/" className="iconButton"><ArrowLeft size={20} /></Link>
         <div><span className="kicker">New post</span><h1>Put it on the board.</h1></div>
+        <button type="button" className="composerAccount" onClick={openAccount}>{displayName}</button>
       </div>
 
       <form className="composerGrid" onSubmit={submit}>
@@ -132,7 +140,7 @@ export function PostComposer() {
           </div>
           <label>Original source <span className="optional">optional</span><input type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
           {error ? <div className="formError">{error}</div> : null}
-          <button className="publishButton" disabled={busy}>{busy ? <><LoaderCircle className="spin" size={19} /> Publishing…</> : "Publish to bheda"}</button>
+          <button className="publishButton" disabled={busy || !ready}>{busy ? <><LoaderCircle className="spin" size={19} /> Publishing…</> : "Publish to bheda"}</button>
           <p className="satireNote">Keep satire clearly satirical. Don’t post private information or copyrighted media you don’t have permission to share.</p>
         </section>
       </form>

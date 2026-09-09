@@ -71,6 +71,7 @@ export function contentFingerprint(parts: Array<string | null | undefined>) {
   return createHash("sha256").update(normalised).digest("hex");
 }
 
-export function publicPublisherHash(request: Request) {
+export function publicPublisherHash(request: Request, actorId?: string) {
+  if (actorId) return hashValue(`auth:${actorId}`);
   return requestActorKeys(request)[0].replace("ip:", "");
 }

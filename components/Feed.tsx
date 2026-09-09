@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Flame, Images, MessageSquareText, MonitorPlay, Sparkles } from "lucide-react";
 import type { Post } from "@/lib/types";
 import { getVisitorId } from "@/lib/visitor";
+import { authFetch } from "@/lib/authFetch";
 import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
 import { PostCard } from "./PostCard";
 import { PostDetail } from "./PostDetail";
+import { useAuth } from "./AuthProvider";
 
 const categories = [
   { label: "All", icon: Sparkles },
@@ -18,20 +20,23 @@ const categories = [
 ];
 
 export function Feed({ initialPosts }: { initialPosts: Post[] }) {
+  const { ready } = useAuth();
   const [posts, setPosts] = useState(initialPosts);
   const [activePost, setActivePost] = useState<Post | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [loading, setLoading] = useState(true);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!ready) return;
     const visitorId = getVisitorId();
-    fetch("/api/posts", { headers: { "x-visitor-id": visitorId } })
+    authFetch("/api/posts", { headers: { "x-visitor-id": visitorId } })
       .then((r) => r.json())
       .then((data) => Array.isArray(data.posts) && setPosts(data.posts))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [ready]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -47,9 +52,27 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
     setActivePost((current) => current?.id === next.id ? next : current);
   }
 
+  function goHome() {
+    setSearch("");
+    setCategory("All");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function focusSearch() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => searchRef.current?.focus(), 180);
+  }
+
+  function openRandom() {
+    const pool = filtered.length ? filtered : posts;
+    if (!pool.length) return;
+    const next = pool[Math.floor(Math.random() * pool.length)];
+    setActivePost(next);
+  }
+
   return (
     <>
-      <Header search={search} setSearch={setSearch} />
+      <Header search={search} setSearch={setSearch} searchInputRef={searchRef} />
       <main className="pageShell">
         <section className="heroCopy">
           <div>
@@ -72,9 +95,9 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
           <section className="masonryFeed" aria-label="Bheda posts">
             {filtered.map((post) => <PostCard key={post.id} post={post} onOpen={setActivePost} onChanged={replacePost} />)}
           </section>
-        ) : <div className="emptyFeed"><span>🐑</span><h2>No sheep in this paddock.</h2><p>Try another search or category.</p></div>}
+        ) : <div className="emptyFeed"><span>B.</span><h2>No bheda posts here.</h2><p>Try another search or category.</p></div>}
       </main>
-      <BottomNav />
+      <BottomNav onHome={goHome} onSearch={focusSearch} onRandom={openRandom} />
       {activePost ? <PostDetail post={activePost} onClose={() => setActivePost(null)} onChanged={replacePost} /> : null}
     </>
   );

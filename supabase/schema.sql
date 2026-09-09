@@ -11,11 +11,12 @@ create table if not exists public.posts (
   media_url text,
   embed_url text,
   source_url text,
-  author_name text not null default 'Guest sheep',
+  author_name text not null default 'Anonymous bheda',
   created_at timestamptz not null default now()
 );
 
--- Anti-spam metadata. These are server-only and are never displayed in the UI.
+-- Auth + anti-spam metadata. These are server-managed.
+alter table public.posts add column if not exists author_id uuid references auth.users(id) on delete set null;
 alter table public.posts add column if not exists content_fingerprint text;
 alter table public.posts add column if not exists publisher_key_hash text;
 
@@ -32,10 +33,16 @@ create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
   visitor_id text not null,
-  author_name text not null default 'Guest sheep',
+  author_id uuid references auth.users(id) on delete set null,
+  author_name text not null default 'Anonymous bheda',
   body text not null check (char_length(body) between 1 and 600),
   created_at timestamptz not null default now()
 );
+
+-- Upgrade existing databases created before auth columns/defaults were added.
+alter table public.comments add column if not exists author_id uuid references auth.users(id) on delete set null;
+alter table public.posts alter column author_name set default 'Anonymous bheda';
+alter table public.comments alter column author_name set default 'Anonymous bheda';
 
 -- Persistent rate limiting for Vercel/serverless. Do not replace this with an
 -- in-memory counter: serverless instances are short-lived and horizontally scaled.
@@ -47,9 +54,11 @@ create table if not exists public.rate_limit_events (
 );
 
 create index if not exists posts_created_at_idx on public.posts(created_at desc);
+create index if not exists posts_author_id_idx on public.posts(author_id, created_at desc);
 create index if not exists posts_content_fingerprint_idx on public.posts(content_fingerprint, created_at desc);
 create index if not exists reactions_post_id_idx on public.reactions(post_id);
 create index if not exists comments_post_id_created_at_idx on public.comments(post_id, created_at desc);
+create index if not exists comments_author_id_idx on public.comments(author_id, created_at desc);
 create index if not exists comments_visitor_created_at_idx on public.comments(visitor_id, created_at desc);
 create index if not exists rate_limit_actor_action_created_idx on public.rate_limit_events(actor_key, action, created_at desc);
 create index if not exists rate_limit_created_at_idx on public.rate_limit_events(created_at);

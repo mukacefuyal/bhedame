@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, ExternalLink, MessageCircle, Share2 } from "lucide-
 import type { Post, ReactionValue } from "@/lib/types";
 import { Media } from "./Media";
 import { getVisitorId } from "@/lib/visitor";
+import { authFetch } from "@/lib/authFetch";
 
 function formatCount(value: number) {
   if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`;
@@ -34,7 +35,7 @@ export function PostCard({ post, onOpen, onChanged }: {
     onChanged(optimistic);
 
     try {
-      const res = await fetch(`/api/posts/${post.id}/reaction`, {
+      const res = await authFetch(`/api/posts/${post.id}/reaction`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId: getVisitorId(), reaction: desired }),

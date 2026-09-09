@@ -19,7 +19,7 @@ button { color: inherit; }
 
 .topbar { height: 78px; display: flex; align-items: center; gap: 18px; padding: 0 24px; position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: blur(18px); border-bottom: 1px solid rgba(0,0,0,.045); }
 .brand { display: flex; align-items: center; min-width: max-content; font-weight: 900; letter-spacing: -1.8px; font-size: 26px; }
-.brandMark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 13px; background: var(--ink); font-size: 20px; margin-right: 8px; }
+.brandMark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 13px; background: var(--ink); color: white; font-size: 22px; font-weight: 950; margin-right: 8px; }
 .brandDot { color: var(--accent); }
 .desktopNav { display: flex; gap: 4px; }
 .navPill { border-radius: 999px; padding: 10px 14px; font-weight: 750; font-size: 14px; }
@@ -31,9 +31,9 @@ button { color: inherit; }
 .iconButton { width: 42px; height: 42px; border: 0; border-radius: 50%; display: grid; place-items: center; background: white; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
 .iconButton.quiet { background: transparent; box-shadow: none; }
 .createButton { display: flex; align-items: center; gap: 6px; border-radius: 999px; padding: 11px 15px; background: var(--accent); color: white; font-weight: 850; }
-.avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--acid); font-weight: 900; }
+.avatar { width: 38px; height: 38px; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--acid); font-weight: 900; cursor: pointer; }
 
-.pageShell { width: min(1600px, calc(100% - 34px)); margin: 0 auto; padding: 40px 0 110px; }
+.pageShell { width: calc(100% - 34px); margin: 0 auto; padding: 40px 0 110px; }
 .heroCopy { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; padding: 18px 8px 30px; }
 .kicker, .eyebrow { color: var(--accent-dark); font-size: 12px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .heroCopy h1 { font-size: clamp(42px, 5vw, 80px); line-height: .93; margin: 8px 0 0; letter-spacing: -.06em; }
@@ -47,7 +47,7 @@ button { color: inherit; }
 .loadingLine span { display: block; width: 36%; height: 100%; background: var(--accent); border-radius: inherit; animation: load 1.2s ease-in-out infinite alternate; }
 @keyframes load { from { transform: translateX(-20%); } to { transform: translateX(220%); } }
 
-.masonryFeed { column-count: 6; column-gap: 18px; }
+.masonryFeed { width: 100%; column-width: 248px; column-count: auto; column-gap: 18px; }
 .pinCard { display: inline-block; width: 100%; break-inside: avoid; margin: 0 0 24px; vertical-align: top; }
 .mediaButton { width: 100%; display: block; position: relative; border: 0; padding: 0; background: #e8e8e2; border-radius: 26px; overflow: hidden; cursor: zoom-in; text-align: left; }
 .postMedia { width: 100%; height: auto; display: block; object-fit: contain; }
@@ -157,10 +157,29 @@ button { color: inherit; }
 .singleBack { position: fixed; z-index: 120; top: 18px; left: 18px; display: inline-flex; align-items: center; gap: 6px; background: white; border-radius: 999px; padding: 10px 14px; font-weight: 800; box-shadow: var(--shadow); }
 .spinner { width: 36px; height: 36px; border: 4px solid #ddd; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
 
-@media (max-width: 1350px) { .masonryFeed { column-count: 5; } }
-@media (max-width: 1120px) { .masonryFeed { column-count: 4; } .composerGrid { grid-template-columns: 1fr 380px; } }
+
+.composerAccount { margin-left: auto; border: 1px solid var(--line); background: white; border-radius: 999px; padding: 10px 14px; font-weight: 800; cursor: pointer; }
+.accountBackdrop { position: fixed; inset: 0; z-index: 150; background: rgba(20,20,20,.42); backdrop-filter: blur(8px); display: grid; place-items: center; padding: 20px; }
+.accountPanel { width: min(440px, 100%); background: white; border-radius: 28px; padding: 28px; position: relative; box-shadow: var(--shadow); }
+.accountClose { position: absolute; top: 16px; right: 16px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #f1f1ee; display: grid; place-items: center; cursor: pointer; }
+.accountIcon { width: 52px; height: 52px; border-radius: 17px; background: var(--acid); display: grid; place-items: center; margin-bottom: 18px; }
+.accountPanel h2 { margin: 6px 0 8px; font-size: 30px; letter-spacing: -.04em; }
+.accountIntro { color: var(--muted); line-height: 1.5; margin: 0 0 18px; }
+.authForm { display: grid; gap: 12px; margin-top: 16px; }
+.authForm label { font-size: 12px; font-weight: 900; display: grid; gap: 7px; }
+.authInputRow { display: flex; align-items: center; gap: 9px; border: 1px solid #deded9; border-radius: 14px; padding: 0 12px; background: #fbfbf9; }
+.authInputRow input { flex: 1; min-width: 0; border: 0; outline: 0; padding: 13px 0; background: transparent; }
+.authPrimary, .authSecondary { width: 100%; border: 0; border-radius: 14px; padding: 13px 15px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 900; cursor: pointer; }
+.authPrimary { background: var(--ink); color: white; }
+.authSecondary { background: #f0f0ed; color: var(--ink); margin-top: 14px; }
+.authPrimary:disabled, .authSecondary:disabled { opacity: .55; cursor: wait; }
+.authSuccess { background: #efffd0; color: #466000; border-radius: 13px; padding: 12px; font-size: 12px; font-weight: 750; }
+.authNote { margin: 16px 2px 0; color: #969691; font-size: 11px; line-height: 1.4; }
+
+@media (max-width: 1350px) { .masonryFeed { column-width: 235px; } }
+@media (max-width: 1120px) { .masonryFeed { column-width: 225px; } .composerGrid { grid-template-columns: 1fr 380px; } }
 @media (max-width: 900px) {
-  .masonryFeed { column-count: 3; }
+  .masonryFeed { column-width: 220px; column-count: auto; }
   .desktopNav, .headerActions .quiet { display: none; }
   .heroCopy { align-items: flex-start; flex-direction: column; gap: 18px; }
   .heroCopy > p { max-width: 620px; }
@@ -178,7 +197,7 @@ button { color: inherit; }
   .heroCopy h1 { font-size: 45px; }
   .heroCopy > p { font-size: 15px; }
   /* Mobile is a readable single-post feed instead of squeezing posts into two tiny columns. */
-  .masonryFeed { column-count: 1; column-gap: 0; }
+  .masonryFeed { column-width: auto; column-count: 1; column-gap: 0; }
   .pinCard { display: block; margin-bottom: 28px; }
   .mediaButton { border-radius: 22px; }
   .pinMeta { padding: 10px 5px 0; }
@@ -190,9 +209,10 @@ button { color: inherit; }
   .shareMini { display: inline-flex; }
   .textPost.compact { padding: 28px; min-height: 360px; }
   .textPost.compact p { font-size: 32px; }
-  .bottomNav { position: fixed; z-index: 70; bottom: 12px; left: 50%; transform: translateX(-50%); height: 66px; width: min(360px, calc(100% - 28px)); display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; align-items: center; background: rgba(255,255,255,.94); backdrop-filter: blur(16px); border: 1px solid rgba(0,0,0,.07); border-radius: 24px; box-shadow: 0 18px 45px rgba(0,0,0,.18); }
-  .bottomNav > a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; font-weight: 800; color: #777; }
-  .bottomNav .bottomCreate { width: 48px; height: 48px; border-radius: 17px; margin: auto; display: grid; place-items: center; background: var(--accent); color: white; }
+  .bottomNav { position: fixed; z-index: 70; bottom: 12px; left: 50%; transform: translateX(-50%); height: 68px; width: min(410px, calc(100% - 24px)); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; background: rgba(255,255,255,.95); backdrop-filter: blur(16px); border: 1px solid rgba(0,0,0,.07); border-radius: 24px; box-shadow: 0 18px 45px rgba(0,0,0,.18); padding: 0 5px; }
+  .bottomNav > a, .bottomNav > button { min-width: 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 9px; font-weight: 800; color: #777; cursor: pointer; }
+  .bottomNav .bottomCreate { position: relative; width: 54px; height: 54px; border-radius: 18px; margin: -8px auto 0; display: flex; align-items: center; justify-content: center; background: var(--accent); color: white; box-shadow: 0 9px 22px rgba(255,79,121,.28); }
+  .bottomNav .bottomCreate span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .detailBackdrop { padding: 0; align-items: end; }
   /* On phones the detail view scrolls naturally, so long screenshots are shown in full. */
   .detailModal { width: 100%; height: 96vh; border-radius: 28px 28px 0 0; display: block; overflow-y: auto; }

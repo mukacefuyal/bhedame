@@ -1,25 +1,25 @@
-# bheda.me — Next.js satire board
+# bheda.me — Next.js satire board v3
 
-A Pinterest-inspired **but intentionally distinct** satire/social board for `bheda.me`.
+A Pinterest-inspired, original visual satire/social board for `bheda.me`.
 
-It supports:
+## Included
 
-- Photo + screenshot uploads
+- Responsive masonry feed that uses the full desktop width
+- Full-width, uncropped mobile posts
+- Photo and screenshot uploads
 - Uploaded video
 - YouTube / Vimeo embeds
-- Text / hot-take cards
+- Text / satire posts
 - Like + dislike reactions
 - Comments + quick-comment chips
-- Shareable post URLs at `/p/[id]`
 - Search + category filters
-- Responsive desktop masonry feed
-- Full-width, uncropped mobile post feed
-- Supabase Postgres + Supabase Storage
-- Persistent serverless-safe rate limiting
-- Duplicate/spam checks
-- Vercel-ready Next.js App Router project
+- 5-item mobile navigation: Home / Search / Create / Random / Me
+- Supabase Auth with automatic anonymous sessions
+- Email magic-link login from the account panel
+- Supabase Postgres + Storage
+- Persistent Vercel-safe rate limiting and duplicate/spam checks
 
-## 1. Run locally
+## 1. Install and run
 
 ```bash
 npm install
@@ -28,37 +28,36 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-Without Supabase environment variables the homepage runs in demo mode. Publishing and real shared reactions/comments require Supabase.
+## 2. Supabase database
 
-## 2. Create or upgrade the Supabase backend
-
-Open **Supabase → SQL Editor** and run the entire file:
+Open **Supabase → SQL Editor** and run the complete file:
 
 ```text
 supabase/schema.sql
 ```
 
-The SQL is idempotent, so you can run it over an existing bheda.me database. It creates/upgrades:
+It is safe to run over the earlier bheda.me schema. v3 adds `author_id` to posts/comments and changes the default public name to `Anonymous bheda`.
 
-- `posts`
-- `reactions`
-- `comments`
-- `rate_limit_events`
-- `check_rate_limit(...)` PostgreSQL function
-- public Storage bucket `media`
-- indexes used by duplicate checks and rate limiting
+## 3. Enable Supabase anonymous login
 
-**Important:** if you deploy this version without re-running `supabase/schema.sql`, publishing/comments/reactions will intentionally return a rate-limiter configuration error rather than silently running without protection.
+In the Supabase dashboard, enable **Anonymous Sign-Ins** under Authentication settings/providers.
 
-## 3. Environment variables
+The browser now automatically calls Supabase anonymous auth when a visitor has no existing session. The Supabase user UUID is used for reactions, comments, post ownership metadata and rate-limit identity. A local visitor ID remains only as a fallback.
 
-Copy `.env.example` to `.env.local`:
+For email login, keep the Email provider enabled. The account panel sends a magic link with `signInWithOtp`. Add these to Supabase Auth URL configuration as appropriate:
 
-```bash
-cp .env.example .env.local
+```text
+Site URL: https://bheda.me
+Redirect URL: https://bheda.me/**
 ```
 
-Fill in:
+For local development also allow:
+
+```text
+http://localhost:3000/**
+```
+
+## 4. Environment variables
 
 ```env
 NEXT_PUBLIC_SITE_URL=https://bheda.me
@@ -68,61 +67,78 @@ SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 RATE_LIMIT_SALT=YOUR_LONG_RANDOM_SECRET
 ```
 
-Generate a salt with:
+Generate the rate-limit salt with:
 
 ```bash
 openssl rand -hex 32
 ```
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` or `RATE_LIMIT_SALT` to browser code and never prefix them with `NEXT_PUBLIC_`.
+Never expose the service-role key or rate-limit salt in browser code.
 
-## 4. Abuse protection included
+## 5. Auth behaviour
 
-### Posts
+- First visit: automatically creates/restores a Supabase anonymous session.
+- Public display name: `Anonymous bheda` by default.
+- Desktop: click the `B` account button.
+- Mobile: tap **Me**.
+- Anonymous users can request an email magic-link login.
+- Signed-in users can return to a fresh anonymous session.
+- API requests send the Supabase access token as a Bearer token.
+- Server routes validate that token with Supabase and use the authenticated UUID as the primary actor ID.
 
-- Maximum **4 post attempts per 10 minutes** per IP and visitor session
-- Maximum **15 post attempts per day** per IP and visitor session
-- Recent duplicate-post detection for the same publisher
-- Repeated-character / repeated-word spam checks
-- Link-count checks
-- Basic embedded-HTML/script rejection
-- Category allow-list
-- Uploaded image/video URLs must come from the site's own Supabase `media` bucket
-- Video embeds are restricted to valid YouTube/Vimeo URLs
+## 6. Abuse protection
 
-### Comments
+Posts:
+- 4 attempts / 10 minutes
+- 15 attempts / day
+- duplicate recent-post detection
+- repeated-character / repeated-word checks
+- excessive-link checks
+- HTML/script rejection
+- category allow-list
 
-- Maximum **8 comments per minute**
-- Maximum **40 comments per hour**
-- Duplicate comment rejection within 10 minutes
-- Repetition and excessive-link checks
+Comments:
+- 8 / minute
+- 40 / hour
+- duplicate-comment rejection within 10 minutes
 
-### Reactions
+Reactions:
+- 60 changes / minute
+- one current reaction per actor/post
 
-- Maximum **60 reaction changes per minute**
-- Database uniqueness still ensures only one current reaction per visitor/post
+Uploads:
+- 8 upload-token requests / 10 minutes
+- 30 / day
+- images up to 15 MB
+- videos up to 120 MB
+- MIME allow-list
+- upload path is namespaced by authenticated/anonymous Supabase user ID
 
-### Uploads
+Rate limits still include a hashed IP key as a second layer. Raw IP addresses are not stored by the app tables.
 
-- Maximum **8 upload-token requests per 10 minutes**
-- Maximum **30 per day**
-- Images: **15 MB** maximum
-- Videos: **120 MB** maximum
-- MIME allow-list is checked by the API and backed up at the Supabase Storage bucket level
+## 7. Desktop layout change
 
-Rate-limit actor identifiers are one-way hashed before being stored. Raw IP addresses are not written into the application tables.
+The feed is no longer capped to the older narrow content area. It now uses almost the full browser width and calculates the number of masonry columns from a target column width, so wide desktop screens do not leave a large unused right side.
 
-## 5. Deploy on Vercel
+## 8. Mobile navigation
 
-1. Push this folder to GitHub/GitLab/Bitbucket.
-2. Import the repository into Vercel.
-3. Add all five environment variables above in **Vercel → Project → Settings → Environment Variables**.
-4. Run the updated `supabase/schema.sql` in Supabase.
-5. Deploy/redeploy.
-6. Test the Vercel preview URL.
-7. When ready, attach `bheda.me` to the project.
+The bottom navigation now has five functional items:
 
-After future code updates:
+```text
+Home | Search | + Create | Random | Me
+```
+
+`Create` is the exact centre item. Search focuses the real header search field, Random opens a random currently available post, and Me opens the Supabase account/login panel.
+
+## 9. Deploy to Vercel
+
+1. Push this folder to your existing Git repository.
+2. Run the updated `supabase/schema.sql` in Supabase.
+3. Enable Anonymous Sign-Ins in Supabase Auth.
+4. Confirm the five environment variables are present in Vercel.
+5. Redeploy.
+
+Future updates:
 
 ```bash
 git add .
@@ -130,34 +146,4 @@ git commit -m "Update bheda.me"
 git push
 ```
 
-Vercel will redeploy automatically.
-
-## Upload architecture
-
-The browser does not proxy large media through a Vercel function. `/api/uploads/prepare` validates the request and creates a short-lived Supabase signed upload token. The browser then uploads directly to Supabase Storage.
-
-Supported MIME types:
-
-- JPEG
-- PNG
-- WebP
-- GIF
-- MP4
-- WebM
-- QuickTime/MOV
-
-## Responsive feed behaviour
-
-Desktop/tablet keeps the masonry layout, but image media is no longer height-cropped.
-
-On phones (`<= 650px`):
-
-- one post per row
-- full-width media
-- original image aspect ratio retained
-- captions are not clamped
-- long screenshots can be viewed at full width and scrolled naturally in the post detail view
-
-## Recommended next protections for a large public launch
-
-The included controls are a strong baseline for a small/medium anonymous site. For a larger public launch, consider Cloudflare Turnstile or another CAPTCHA on suspicious activity, user accounts/Supabase Auth, an admin moderation queue, reporting/takedown tools, and automated media moderation.
+Vercel will deploy automatically.

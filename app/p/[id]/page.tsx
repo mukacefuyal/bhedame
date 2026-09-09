@@ -5,21 +5,26 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { Post } from "@/lib/types";
 import { PostDetail } from "@/components/PostDetail";
+import { authFetch } from "@/lib/authFetch";
+import { getVisitorId } from "@/lib/visitor";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function SinglePostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { ready } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/posts/${id}`).then(async (r) => {
+    if (!ready) return;
+    authFetch(`/api/posts/${id}`, { headers: { "x-visitor-id": getVisitorId() } }).then(async (r) => {
       if (!r.ok) throw new Error();
       const data = await r.json();
       setPost(data.post);
     }).catch(() => setMissing(true));
-  }, [id]);
+  }, [id, ready]);
 
-  if (missing) return <main className="singleFallback"><span>🐑</span><h1>That post wandered off.</h1><Link href="/">Back home</Link></main>;
+  if (missing) return <main className="singleFallback"><span>B.</span><h1>That bheda post wandered off.</h1><Link href="/">Back home</Link></main>;
   if (!post) return <main className="singleFallback"><div className="spinner" /></main>;
 
   return (

@@ -12,6 +12,7 @@ export interface Post {
   embed_url: string | null;
   source_url: string | null;
   author_name: string;
+  author_id?: string | null;
   created_at: string;
   likes: number;
   dislikes: number;
@@ -24,6 +25,7 @@ export interface Comment {
   id: string;
   post_id: string;
   visitor_id?: string;
+  author_id?: string | null;
   author_name: string;
   body: string;
   created_at: string;

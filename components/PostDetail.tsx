@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp, ExternalLink, Send, Share2, X } from "lucide-react"
 import type { Comment, Post } from "@/lib/types";
 import { Media } from "./Media";
 import { getVisitorId } from "@/lib/visitor";
+import { authFetch } from "@/lib/authFetch";
+import { useAuth } from "./AuthProvider";
 
 const chips = ["Love it ❤️", "Brilliant!", "Unhinged 😂", "Needs context", "Looks good!"];
 
@@ -13,17 +15,22 @@ export function PostDetail({ post, onClose, onChanged }: {
   onClose: () => void;
   onChanged: (post: Post) => void;
 }) {
+  const { displayName, ready } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
-  const [author, setAuthor] = useState("Guest sheep");
+  const [author, setAuthor] = useState("Anonymous bheda");
   const [sending, setSending] = useState(false);
   const [commentError, setCommentError] = useState("");
 
   const localKey = useMemo(() => `bheda-comments-${post.id}`, [post.id]);
 
   useEffect(() => {
+    if (ready) setAuthor(displayName);
+  }, [displayName, ready]);
+
+  useEffect(() => {
     document.body.classList.add("modalOpen");
-    fetch(`/api/posts/${post.id}/comments`)
+    authFetch(`/api/posts/${post.id}/comments`)
       .then((r) => r.json())
       .then((data) => {
         if (data.demo) {
@@ -43,10 +50,10 @@ export function PostDetail({ post, onClose, onChanged }: {
     setSending(true);
     setCommentError("");
     try {
-      const res = await fetch(`/api/posts/${post.id}/comments`, {
+      const res = await authFetch(`/api/posts/${post.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visitorId: getVisitorId(), authorName: author.trim() || "Guest sheep", body: clean }),
+        body: JSON.stringify({ visitorId: getVisitorId(), authorName: author.trim() || "Anonymous bheda", body: clean }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not comment");
@@ -55,7 +62,7 @@ export function PostDetail({ post, onClose, onChanged }: {
           id: crypto.randomUUID(),
           post_id: post.id,
           visitor_id: getVisitorId(),
-          author_name: author.trim() || "Guest sheep",
+          author_name: author.trim() || "Anonymous bheda",
           body: clean,
           created_at: new Date().toISOString(),
         };
@@ -86,7 +93,7 @@ export function PostDetail({ post, onClose, onChanged }: {
     };
     onChanged(optimistic);
     try {
-      const res = await fetch(`/api/posts/${post.id}/reaction`, {
+      const res = await authFetch(`/api/posts/${post.id}/reaction`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId: getVisitorId(), reaction: desired }),

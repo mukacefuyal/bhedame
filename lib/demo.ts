@@ -27,7 +27,7 @@ export const demoPosts: Post[] = [
     media_url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=82",
     embed_url: null,
     source_url: null,
-    author_name: "office sheep",
+    author_name: "office bheda",
     created_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
     likes: 188,
     dislikes: 8,
