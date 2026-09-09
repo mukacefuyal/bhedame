@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 import { normaliseEmbedUrl } from "@/lib/embed";
 import type { MediaType } from "@/lib/types";
+import { getVisitorId } from "@/lib/visitor";
 
 const tabs: { value: MediaType; label: string; icon: typeof ImageIcon }[] = [
   { value: "image", label: "Image", icon: ImageIcon },
@@ -35,7 +36,7 @@ export function PostComposer() {
     const prep = await fetch("/api/uploads/prepare", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: file.name, contentType: file.type }),
+      body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, visitorId: getVisitorId() }),
     });
     const details = await prep.json();
     if (!prep.ok) throw new Error(details.error || "Storage is not configured yet.");
@@ -66,6 +67,7 @@ export function PostComposer() {
         body: JSON.stringify({
           title: title.trim(), caption: caption.trim(), category, mediaType,
           mediaUrl, embedUrl, sourceUrl: sourceUrl.trim(), authorName: author.trim() || "Guest sheep",
+          visitorId: getVisitorId(),
         }),
       });
       const data = await res.json();

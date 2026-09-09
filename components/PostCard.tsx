@@ -40,7 +40,8 @@ export function PostCard({ post, onOpen, onChanged }: {
         body: JSON.stringify({ visitorId: getVisitorId(), reaction: desired }),
       });
       const data = await res.json();
-      if (res.ok && !data.demo) onChanged({ ...optimistic, ...data });
+      if (!res.ok) throw new Error(data.error || "Could not react");
+      if (!data.demo) onChanged({ ...optimistic, ...data });
     } catch {
       onChanged(post);
     } finally {

@@ -38,3 +38,17 @@ export function isSafeHttpUrl(input?: string | null) {
     return false;
   }
 }
+
+
+export function isOwnMediaUrl(input?: string | null) {
+  if (!isSafeHttpUrl(input)) return false;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return false;
+  try {
+    const media = new URL(input!);
+    const base = new URL(supabaseUrl);
+    return media.origin === base.origin && media.pathname.startsWith("/storage/v1/object/public/media/");
+  } catch {
+    return false;
+  }
+}

@@ -50,8 +50,9 @@ button { color: inherit; }
 .masonryFeed { column-count: 6; column-gap: 18px; }
 .pinCard { display: inline-block; width: 100%; break-inside: avoid; margin: 0 0 24px; vertical-align: top; }
 .mediaButton { width: 100%; display: block; position: relative; border: 0; padding: 0; background: #e8e8e2; border-radius: 26px; overflow: hidden; cursor: zoom-in; text-align: left; }
-.postMedia { width: 100%; height: auto; display: block; object-fit: cover; max-height: 760px; }
-.mediaButton .postMedia { min-height: 210px; }
+.postMedia { width: 100%; height: auto; display: block; object-fit: contain; }
+/* Feed media is never cropped: tall screenshots and portrait photos keep their full aspect ratio. */
+.mediaButton .postMedia { min-height: 0; max-height: none; }
 .cardOverlay { position: absolute; inset: 0; display: flex; justify-content: flex-end; align-items: flex-start; padding: 14px; background: linear-gradient(to bottom, rgba(0,0,0,.28), transparent 42%, rgba(0,0,0,.05)); opacity: 0; transition: .2s; }
 .mediaButton:hover .cardOverlay { opacity: 1; }
 .openBadge { display: inline-flex; align-items: center; gap: 6px; color: white; background: var(--accent); padding: 10px 13px; border-radius: 999px; font-weight: 850; font-size: 13px; }
@@ -176,24 +177,30 @@ button { color: inherit; }
   .heroCopy { padding: 12px 5px 20px; }
   .heroCopy h1 { font-size: 45px; }
   .heroCopy > p { font-size: 15px; }
-  .masonryFeed { column-count: 2; column-gap: 10px; }
-  .pinCard { margin-bottom: 17px; }
-  .mediaButton { border-radius: 20px; }
-  .pinMeta { padding: 8px 3px 0; }
-  .pinMeta h2 { font-size: 14px; }
-  .captionClamp { font-size: 12px; }
+  /* Mobile is a readable single-post feed instead of squeezing posts into two tiny columns. */
+  .masonryFeed { column-count: 1; column-gap: 0; }
+  .pinCard { display: block; margin-bottom: 28px; }
+  .mediaButton { border-radius: 22px; }
+  .pinMeta { padding: 10px 5px 0; }
+  .pinMeta h2 { font-size: 17px; }
+  .captionClamp { font-size: 13px; -webkit-line-clamp: unset; display: block; overflow: visible; }
   .categoryTag { display: none; }
   .reactionBar { gap: 0; }
-  .react { padding: 5px 5px; font-size: 11px; }
-  .shareMini { display: none; }
-  .textPost.compact { padding: 18px; min-height: 200px; }
-  .textPost.compact p { font-size: 22px; }
+  .react { padding: 7px 8px; font-size: 12px; }
+  .shareMini { display: inline-flex; }
+  .textPost.compact { padding: 28px; min-height: 360px; }
+  .textPost.compact p { font-size: 32px; }
   .bottomNav { position: fixed; z-index: 70; bottom: 12px; left: 50%; transform: translateX(-50%); height: 66px; width: min(360px, calc(100% - 28px)); display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; align-items: center; background: rgba(255,255,255,.94); backdrop-filter: blur(16px); border: 1px solid rgba(0,0,0,.07); border-radius: 24px; box-shadow: 0 18px 45px rgba(0,0,0,.18); }
   .bottomNav > a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; font-weight: 800; color: #777; }
   .bottomNav .bottomCreate { width: 48px; height: 48px; border-radius: 17px; margin: auto; display: grid; place-items: center; background: var(--accent); color: white; }
   .detailBackdrop { padding: 0; align-items: end; }
-  .detailModal { width: 100%; height: 96vh; border-radius: 28px 28px 0 0; grid-template-columns: 1fr; grid-template-rows: 38% 62%; }
-  .detailInfo { padding: 18px 18px 12px; }
+  /* On phones the detail view scrolls naturally, so long screenshots are shown in full. */
+  .detailModal { width: 100%; height: 96vh; border-radius: 28px 28px 0 0; display: block; overflow-y: auto; }
+  .detailMediaPanel { min-height: 0; overflow: visible; }
+  .detailMediaPanel .postMedia { width: 100%; height: auto; max-height: none; object-fit: contain; }
+  .detailMediaPanel .embedWrap { width: 100%; aspect-ratio: 16 / 9; }
+  .detailMediaPanel .textPost { min-height: 72vh; height: auto; aspect-ratio: auto; }
+  .detailInfo { min-height: 58vh; padding: 18px 18px 28px; }
   .detailInfo h1 { font-size: 28px; }
   .detailTopActions { margin-bottom: 8px; }
   .closeFab { top: 12px; left: 12px; }
@@ -205,3 +212,5 @@ button { color: inherit; }
   .textPreview { min-height: 390px; padding: 28px; }
   .twoFields { grid-template-columns: 1fr; }
 }
+
+.commentError { margin: 8px 0; padding: 9px 11px; border-radius: 12px; background: #fff0f3; color: #a52043; font-size: 12px; font-weight: 750; }

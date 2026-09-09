@@ -1,16 +1,50 @@
 import { randomUUID } from "crypto";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { checkRateLimit } from "@/lib/requestSecurity";
 
 const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"]);
+const maxImageBytes = 15 * 1024 * 1024;
+const maxVideoBytes = 120 * 1024 * 1024;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const db = getSupabaseAdmin();
   if (!db) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
-  const body = await request.json();
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const visitorId = String(body.visitorId || "").slice(0, 100);
   const contentType = String(body.contentType || "");
-  const filename = String(body.filename || "file");
+  const filename = String(body.filename || "file").slice(0, 180);
+  const size = Number(body.size || 0);
+  if (!visitorId) return NextResponse.json({ error: "Missing visitor session. Refresh and try again." }, { status: 400 });
   if (!allowed.has(contentType)) return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
+  if (!Number.isFinite(size) || size <= 0) return NextResponse.json({ error: "Invalid file size." }, { status: 400 });
+
+  const isVideo = contentType.startsWith("video/");
+  const maxBytes = isVideo ? maxVideoBytes : maxImageBytes;
+  if (size > maxBytes) {
+    const mb = Math.round(maxBytes / 1024 / 1024);
+    return NextResponse.json({ error: `${isVideo ? "Video" : "Image"} uploads are limited to ${mb} MB.` }, { status: 413 });
+  }
+
+  try {
+    const burst = await checkRateLimit(db, request, "upload_10m", 8, 10 * 60, visitorId);
+    if (!burst.allowed) {
+      return NextResponse.json({ error: "Too many upload attempts. Try again later." }, { status: 429, headers: { "Retry-After": String(burst.retryAfter) } });
+    }
+    const daily = await checkRateLimit(db, request, "upload_day", 30, 24 * 60 * 60, visitorId);
+    if (!daily.allowed) {
+      return NextResponse.json({ error: "Daily upload limit reached. Try again tomorrow." }, { status: 429, headers: { "Retry-After": String(daily.retryAfter) } });
+    }
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Rate limiter unavailable." }, { status: 503 });
+  }
 
   const rawExt = filename.includes(".") ? filename.split(".").pop()!.toLowerCase() : "bin";
   const ext = rawExt.replace(/[^a-z0-9]/g, "").slice(0, 8) || "bin";

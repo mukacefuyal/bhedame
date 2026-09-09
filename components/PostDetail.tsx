@@ -17,6 +17,7 @@ export function PostDetail({ post, onClose, onChanged }: {
   const [body, setBody] = useState("");
   const [author, setAuthor] = useState("Guest sheep");
   const [sending, setSending] = useState(false);
+  const [commentError, setCommentError] = useState("");
 
   const localKey = useMemo(() => `bheda-comments-${post.id}`, [post.id]);
 
@@ -40,6 +41,7 @@ export function PostDetail({ post, onClose, onChanged }: {
     const clean = text.trim();
     if (!clean || sending) return;
     setSending(true);
+    setCommentError("");
     try {
       const res = await fetch(`/api/posts/${post.id}/comments`, {
         method: "POST",
@@ -65,6 +67,8 @@ export function PostDetail({ post, onClose, onChanged }: {
       }
       setBody("");
       onChanged({ ...post, comments_count: post.comments_count + 1 });
+    } catch (error) {
+      setCommentError(error instanceof Error ? error.message : "Could not comment");
     } finally {
       setSending(false);
     }
@@ -81,11 +85,18 @@ export function PostDetail({ post, onClose, onChanged }: {
       user_reaction: desired as -1 | 0 | 1,
     };
     onChanged(optimistic);
-    await fetch(`/api/posts/${post.id}/reaction`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitorId: getVisitorId(), reaction: desired }),
-    }).catch(() => {});
+    try {
+      const res = await fetch(`/api/posts/${post.id}/reaction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitorId: getVisitorId(), reaction: desired }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not react");
+      if (!data.demo) onChanged({ ...optimistic, ...data });
+    } catch {
+      onChanged(post);
+    }
   }
 
   async function share() {
@@ -130,6 +141,7 @@ export function PostDetail({ post, onClose, onChanged }: {
               </div>
             ))}
           </div>
+          {commentError ? <div className="commentError" role="alert">{commentError}</div> : null}
           <div className="commentComposer">
             <input className="nameInput" value={author} onChange={(e) => setAuthor(e.target.value)} aria-label="Your name" />
             <div className="commentInputRow">
