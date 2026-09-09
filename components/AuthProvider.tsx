@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: anonymousData, error } = await supabase.auth.signInAnonymously();
       if (!mounted) return;
-      if (error) setAuthError("Anonymous login is not enabled in Supabase yet.");
+      if (error) setAuthError("Anonymous access is temporarily unavailable.");
       setSession(anonymousData.session || null);
       setReady(true);
     })();
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!clean) return;
     const supabase = getSupabaseBrowser();
     if (!supabase) {
-      setAuthError("Supabase is not configured.");
+      setAuthError("Login is not available right now.");
       return;
     }
 
@@ -133,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <h2>{displayName}</h2>
             <p className="accountIntro">
               {isAnonymous
-                ? "You have a private anonymous Supabase session. Likes, comments and posting can still be tied to this session without showing your identity."
+                ? "You are browsing as Anonymous bheda. You can like, comment and post without showing your identity."
                 : `Signed in${user?.email ? ` as ${user.email}` : ""}.`}
             </p>
 
@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               </button>
             )}
 
-            <p className="authNote">Anonymous access requires Anonymous Sign-Ins to be enabled in Supabase Authentication.</p>
+            <p className="authNote">Your public display name stays Anonymous bheda unless you sign in.</p>
           </section>
         </div>
       ) : null}

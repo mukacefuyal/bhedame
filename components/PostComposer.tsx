@@ -49,7 +49,7 @@ export function PostComposer() {
     if (!prep.ok) throw new Error(details.error || "Storage is not configured yet.");
 
     const supabase = getSupabaseBrowser();
-    if (!supabase) throw new Error("Missing public Supabase environment variables.");
+    if (!supabase) throw new Error("Upload service is not available right now.");
     const { error: uploadError } = await supabase.storage
       .from("media")
       .uploadToSignedUrl(details.path, details.token, file, { contentType: file.type });
@@ -111,7 +111,7 @@ export function PostComposer() {
               {previewUrl ? (
                 mediaType === "image" ? <img src={previewUrl} alt="Preview" /> : <video src={previewUrl} controls />
               ) : (
-                <div><UploadCloud size={38} /><strong>Drop or choose a {mediaType}</strong><span>Uploads go directly to Supabase Storage.</span></div>
+                <div><UploadCloud size={38} /><strong>Drop or choose a {mediaType}</strong><span>Your media will be uploaded securely.</span></div>
               )}
               <input type="file" accept={mediaType === "image" ? "image/*" : "video/*"} onChange={(e) => setFile(e.target.files?.[0] || null)} />
             </label>
