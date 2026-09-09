@@ -32,7 +32,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { error } = await db.from("reactions").delete().eq("post_id", id).eq("visitor_id", actorId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   } else {
-    const { error } = await db.from("reactions").upsert({ post_id: id, visitor_id: actorId, reaction }, { onConflict: "post_id,visitor_id" });
+    const { error } = await db.from("reactions").upsert({
+      post_id: id,
+      visitor_id: actorId,
+      reaction,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "post_id,visitor_id" });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
