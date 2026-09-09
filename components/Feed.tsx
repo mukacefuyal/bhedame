@@ -51,8 +51,8 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
         || post.category.toLowerCase() === category.toLowerCase()
         || (category === "Videos" && ["video", "embed"].includes(post.media_type))
         || (category === "Audio" && post.media_type === "audio");
-      const searchMatch = !q || `${post.title} ${post.caption || ""} ${post.author_name} ${post.category}`.toLowerCase().includes(q);
-      return categoryMatch && searchMatch;
+      const haystack = `${post.title} ${post.caption || ""} ${post.author_name} @${post.author_name} ${post.category}`.toLowerCase();
+      return categoryMatch && (!q || haystack.includes(q));
     });
   }, [posts, search, category]);
 
@@ -77,73 +77,23 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
     setActivePost((current) => current?.id === next.id ? next : current);
   }
 
-  function goHome() {
-    setSearch("");
-    setCategory("All");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function focusSearch() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setTimeout(() => searchRef.current?.focus(), 180);
-  }
-
-  function filterToken(token: string) {
-    setSearch(token);
-    setCategory("All");
-    setActivePost(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setTimeout(() => searchRef.current?.focus(), 180);
-  }
-
-  function openRandom() {
-    const pool = filtered.length ? filtered : posts;
-    if (!pool.length) return;
-    setActivePost(pool[Math.floor(Math.random() * pool.length)]);
-  }
+  function goHome() { setSearch(""); setCategory("All"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function focusSearch() { window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => searchRef.current?.focus(), 180); }
+  function filterToken(token: string) { setSearch(token); setCategory("All"); setActivePost(null); window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => searchRef.current?.focus(), 180); }
+  function openRandom() { const pool = filtered.length ? filtered : posts; if (pool.length) setActivePost(pool[Math.floor(Math.random() * pool.length)]); }
 
   return (
     <>
       <Header search={search} setSearch={setSearch} searchInputRef={searchRef} />
       <main className="pageShell">
-        <section className="heroCopy">
-          <div>
-            <span className="kicker">bheda.me</span>
-            <h1>{t("heroTitle1")}<br /><em>{t("heroTitle2")}</em></h1>
-          </div>
-          <p>{t("heroText")}</p>
-        </section>
-
+        <section className="heroCopy"><div><span className="kicker">bheda.me</span><h1>{t("heroTitle1")}<br /><em>{t("heroTitle2")}</em></h1></div><p>{t("heroText")}</p></section>
         <section className="feedTools" id="fresh">
           <label className="categorySearchBox"><Sparkles size={16} /><input value={categorySearch} onChange={(e) => setCategorySearch(e.target.value)} placeholder={t("categorySearch")} /></label>
-          <div className="categoryScroller">
-            {visibleCategories.map(({ label, key, icon: Icon }) => (
-              <button key={label} className={category === label ? "categoryChip active" : "categoryChip"} onClick={() => setCategory(label)}>
-                <Icon size={17} /> {t(key)}
-              </button>
-            ))}
-          </div>
+          <div className="categoryScroller">{visibleCategories.map(({ label, key, icon: Icon }) => <button key={label} className={category === label ? "categoryChip active" : "categoryChip"} onClick={() => setCategory(label)}><Icon size={17} /> {t(key)}</button>)}</div>
         </section>
-
-        {contributors.length ? (
-          <section className="contributorsStrip">
-            <div className="contributorsTitle"><Trophy size={17} /><strong>{t("topContributors")}</strong></div>
-            <div className="contributorsList">
-              {contributors.map((person, index) => (
-                <button key={person.name} className="contributorPill" onClick={() => filterToken(`@${person.name}`)}>
-                  <span>{index + 1}</span><strong>{person.name}</strong><small>{person.posts} {t("posts")}</small>
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
+        {contributors.length ? <section className="contributorsStrip"><div className="contributorsTitle"><Trophy size={17} /><strong>{t("topContributors")}</strong></div><div className="contributorsList">{contributors.map((person, index) => <button key={person.name} className="contributorPill" onClick={() => filterToken(`@${person.name}`)}><span>{index + 1}</span><strong>{person.name}</strong><small>{person.posts} {t("posts")}</small></button>)}</div></section> : null}
         {loading ? <div className="loadingLine"><span /></div> : null}
-        {filtered.length ? (
-          <section className="masonryFeed" aria-label="Bheda posts">
-            {filtered.map((post) => <PostCard key={post.id} post={post} onOpen={setActivePost} onChanged={replacePost} onToken={filterToken} />)}
-          </section>
-        ) : <div className="emptyFeed"><span>B.</span><h2>{t("noPosts")}</h2><p>{t("trySearch")}</p></div>}
+        {filtered.length ? <section className="masonryFeed" aria-label="Bheda posts">{filtered.map((post) => <PostCard key={post.id} post={post} onOpen={setActivePost} onChanged={replacePost} onToken={filterToken} />)}</section> : <div className="emptyFeed"><span>B.</span><h2>{t("noPosts")}</h2><p>{t("trySearch")}</p></div>}
       </main>
       <BottomNav onHome={goHome} onSearch={focusSearch} onRandom={openRandom} />
       {activePost ? <PostDetail post={activePost} onClose={() => setActivePost(null)} onChanged={replacePost} onToken={filterToken} /> : null}
