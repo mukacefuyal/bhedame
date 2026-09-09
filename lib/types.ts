@@ -1,4 +1,4 @@
-export type MediaType = "image" | "video" | "embed" | "text";
+export type MediaType = "image" | "video" | "audio" | "embed" | "text";
 
 export type ReactionValue = -1 | 0 | 1;
 

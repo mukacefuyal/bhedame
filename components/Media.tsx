@@ -1,3 +1,4 @@
+import { AudioLines } from "lucide-react";
 import type { Post } from "@/lib/types";
 
 export function Media({ post, compact = false }: { post: Post; compact?: boolean }) {
@@ -11,7 +12,20 @@ export function Media({ post, compact = false }: { post: Post; compact?: boolean
   }
 
   if (post.media_type === "video" && post.media_url) {
-    return <video className="postMedia" src={post.media_url} controls playsInline preload="metadata" />;
+    return <video className="postMedia" src={post.media_url} controls playsInline preload="metadata" onClick={(e) => e.stopPropagation()} />;
+  }
+
+  if (post.media_type === "audio" && post.media_url) {
+    return (
+      <div className={`audioPost ${compact ? "compact" : ""}`}>
+        <div className="audioArtwork"><AudioLines size={compact ? 38 : 54} /></div>
+        <div className="audioCopy">
+          <span>Audio post</span>
+          <strong>{post.title}</strong>
+        </div>
+        <audio src={post.media_url} controls preload="metadata" onClick={(e) => e.stopPropagation()} />
+      </div>
+    );
   }
 
   if (post.media_type === "embed" && post.embed_url) {

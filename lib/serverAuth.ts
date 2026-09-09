@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { anonymousDisplayName } from "./identity";
 
 export async function getRequestUser(request: Request, db: SupabaseClient): Promise<User | null> {
   const header = request.headers.get("authorization") || "";
@@ -18,8 +19,8 @@ export async function getRequestActor(request: Request, db: SupabaseClient, fall
   return { user, actorId };
 }
 
-export function displayNameForUser(user: User | null) {
-  if (!user || user.is_anonymous) return "Anonymous bheda";
+export function displayNameForUser(user: User | null, fallbackSeed = "") {
+  if (!user || user.is_anonymous) return anonymousDisplayName(user?.id || fallbackSeed || "guest");
 
   const metadataName = [
     user.user_metadata?.display_name,
@@ -28,6 +29,6 @@ export function displayNameForUser(user: User | null) {
   ].find((value) => typeof value === "string" && value.trim());
 
   if (typeof metadataName === "string") return metadataName.trim().slice(0, 60);
-  if (user.email) return user.email.split("@")[0].slice(0, 60) || "Signed-in bheda";
-  return "Signed-in bheda";
+  if (user.email) return user.email.split("@")[0].slice(0, 60) || "Registered user";
+  return "Registered user";
 }

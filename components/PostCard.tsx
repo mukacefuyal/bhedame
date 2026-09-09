@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, ExternalLink, MessageCircle, Share2 } from "lucide-react";
 import type { Post, ReactionValue } from "@/lib/types";
 import { Media } from "./Media";
+import { RichText } from "./RichText";
 import { getVisitorId } from "@/lib/visitor";
 import { authFetch } from "@/lib/authFetch";
 
@@ -12,12 +13,39 @@ function formatCount(value: number) {
   return String(value);
 }
 
-export function PostCard({ post, onOpen, onChanged }: {
+export function PostCard({ post, onOpen, onChanged, onToken }: {
   post: Post;
   onOpen: (post: Post) => void;
   onChanged: (post: Post) => void;
+  onToken?: (token: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [rowSpan, setRowSpan] = useState<number | undefined>();
+  const cardRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const element = cardRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+
+    const measure = () => {
+      if (window.innerWidth <= 650) {
+        setRowSpan(undefined);
+        return;
+      }
+      const height = element.getBoundingClientRect().height;
+      // Must match grid-auto-rows (8px) and row-gap (10px) in layout-fix.css.
+      setRowSpan(Math.max(1, Math.ceil((height + 10) / 18)));
+    };
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    window.addEventListener("resize", measure);
+    requestAnimationFrame(measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   async function react(next: ReactionValue) {
     if (busy) return;
@@ -60,18 +88,25 @@ export function PostCard({ post, onOpen, onChanged }: {
   }
 
   return (
-    <article className="pinCard">
-      <button className="mediaButton" onClick={() => onOpen(post)} aria-label={`Open ${post.title}`}>
+    <article ref={cardRef} className="pinCard" style={rowSpan ? { gridRowEnd: `span ${rowSpan}` } : undefined}>
+      <div
+        className="mediaButton"
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(post)}
+        onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && onOpen(post)}
+        aria-label={`Open ${post.title}`}
+      >
         <Media post={post} compact />
         <div className="cardOverlay">
           <span className="openBadge"><ExternalLink size={16} /> Open</span>
         </div>
-      </button>
+      </div>
       <div className="pinMeta">
         <button className="titleButton" onClick={() => onOpen(post)}>
           <h2>{post.title}</h2>
         </button>
-        {post.caption && post.media_type !== "text" ? <p className="captionClamp">{post.caption}</p> : null}
+        {post.caption && post.media_type !== "text" ? <p className="captionClamp"><RichText text={post.caption} onToken={onToken} /></p> : null}
         <div className="metaLine">
           <span className="authorDot">{post.author_name.slice(0, 1).toUpperCase()}</span>
           <span className="authorName">{post.author_name}</span>

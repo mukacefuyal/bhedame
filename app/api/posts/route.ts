@@ -9,7 +9,7 @@ import { displayNameForUser, getRequestActor } from "@/lib/serverAuth";
 
 export const dynamic = "force-dynamic";
 
-const categories = new Set(["Satire", "Photos", "Screenshots", "Videos", "Hot takes", "Internet archaeology"]);
+const categories = new Set(["Satire", "Politics", "Society", "Photos", "Screenshots", "Videos", "Audio", "Hot takes", "Internet archaeology"]);
 const publicPostColumns = "id,title,caption,category,media_type,media_url,embed_url,source_url,author_name,author_id,created_at";
 
 function rateLimited(retryAfter: number) {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const db = getSupabaseAdmin();
-  if (!db) return NextResponse.json({ error: "Supabase is not configured. Add the environment variables from .env.example before publishing real posts." }, { status: 503 });
+  if (!db) return NextResponse.json({ error: "Publishing service is not configured yet." }, { status: 503 });
 
   let body: Record<string, unknown>;
   try { body = await request.json(); }
@@ -67,19 +67,18 @@ export async function POST(request: NextRequest) {
   const title = String(body.title || "").trim().slice(0, 180);
   const caption = String(body.caption || "").trim().slice(0, 1200);
   const category = String(body.category || "Satire").trim().slice(0, 60);
-  const requestedAuthor = String(body.authorName || "").trim().slice(0, 60);
-  const authorName = requestedAuthor || displayNameForUser(user);
+  const authorName = displayNameForUser(user, actorId);
   const mediaType = body.mediaType as MediaType;
   const mediaUrl = body.mediaUrl ? String(body.mediaUrl) : null;
   const rawEmbedUrl = body.embedUrl ? String(body.embedUrl) : null;
   const embedUrl = rawEmbedUrl ? normaliseEmbedUrl(rawEmbedUrl) : null;
   const sourceUrl = body.sourceUrl ? String(body.sourceUrl) : null;
 
-  if (!actorId) return NextResponse.json({ error: "Missing bheda session. Refresh the page and try again." }, { status: 400 });
+  if (!actorId) return NextResponse.json({ error: "Missing session. Refresh the page and try again." }, { status: 400 });
   if (!title) return NextResponse.json({ error: "Title is required." }, { status: 400 });
   if (!categories.has(category)) return NextResponse.json({ error: "Unsupported category." }, { status: 400 });
-  if (!["image", "video", "embed", "text"].includes(mediaType)) return NextResponse.json({ error: "Unsupported media type." }, { status: 400 });
-  if (["image", "video"].includes(mediaType) && !isOwnMediaUrl(mediaUrl)) return NextResponse.json({ error: "Media must be uploaded through bheda.me." }, { status: 400 });
+  if (!["image", "video", "audio", "embed", "text"].includes(mediaType)) return NextResponse.json({ error: "Unsupported media type." }, { status: 400 });
+  if (["image", "video", "audio"].includes(mediaType) && !isOwnMediaUrl(mediaUrl)) return NextResponse.json({ error: "Media must be uploaded through bheda.me." }, { status: 400 });
   if (mediaType === "embed" && !embedUrl) return NextResponse.json({ error: "Only valid YouTube or Vimeo embeds are supported." }, { status: 400 });
   if (sourceUrl && !isSafeHttpUrl(sourceUrl)) return NextResponse.json({ error: "Source URL must be http or https." }, { status: 400 });
 
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await db.from("posts").insert({
     title, caption: caption || null, category, media_type: mediaType, media_url: mediaUrl,
-    embed_url: embedUrl, source_url: sourceUrl, author_name: authorName || "Anonymous bheda",
+    embed_url: embedUrl, source_url: sourceUrl, author_name: authorName,
     author_id: user?.id || null, content_fingerprint: fingerprint, publisher_key_hash: publisherHash,
   }).select(publicPostColumns).single();
 

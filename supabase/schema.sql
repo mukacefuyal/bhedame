@@ -7,11 +7,11 @@ create table if not exists public.posts (
   title text not null check (char_length(title) between 1 and 180),
   caption text,
   category text not null default 'Satire',
-  media_type text not null check (media_type in ('image','video','embed','text')),
+  media_type text not null check (media_type in ('image','video','audio','embed','text')),
   media_url text,
   embed_url text,
   source_url text,
-  author_name text not null default 'Anonymous bheda',
+  author_name text not null default 'Anonymous user',
   created_at timestamptz not null default now()
 );
 
@@ -19,6 +19,10 @@ create table if not exists public.posts (
 alter table public.posts add column if not exists author_id uuid references auth.users(id) on delete set null;
 alter table public.posts add column if not exists content_fingerprint text;
 alter table public.posts add column if not exists publisher_key_hash text;
+
+-- Upgrade the media type check for databases created before audio posts were supported.
+alter table public.posts drop constraint if exists posts_media_type_check;
+alter table public.posts add constraint posts_media_type_check check (media_type in ('image','video','audio','embed','text'));
 
 create table if not exists public.reactions (
   post_id uuid not null references public.posts(id) on delete cascade,
@@ -34,15 +38,15 @@ create table if not exists public.comments (
   post_id uuid not null references public.posts(id) on delete cascade,
   visitor_id text not null,
   author_id uuid references auth.users(id) on delete set null,
-  author_name text not null default 'Anonymous bheda',
+  author_name text not null default 'Anonymous user',
   body text not null check (char_length(body) between 1 and 600),
   created_at timestamptz not null default now()
 );
 
 -- Upgrade existing databases created before auth columns/defaults were added.
 alter table public.comments add column if not exists author_id uuid references auth.users(id) on delete set null;
-alter table public.posts alter column author_name set default 'Anonymous bheda';
-alter table public.comments alter column author_name set default 'Anonymous bheda';
+alter table public.posts alter column author_name set default 'Anonymous user';
+alter table public.comments alter column author_name set default 'Anonymous user';
 
 -- Persistent rate limiting for Vercel/serverless. Do not replace this with an
 -- in-memory counter: serverless instances are short-lived and horizontally scaled.
@@ -142,5 +146,5 @@ on conflict (id) do update set public = excluded.public;
 -- Storage-level backstop. The API applies a tighter 15 MB limit to images.
 update storage.buckets
 set file_size_limit = 125829120,
-    allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime']
+    allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime','audio/mpeg','audio/mp4','audio/x-m4a','audio/aac','audio/wav','audio/x-wav','audio/ogg','audio/webm']
 where id = 'media';

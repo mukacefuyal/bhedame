@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session, User } from "@supabase/supabase-js";
 import { LoaderCircle, LogIn, Mail, UserRound, X } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
+import { anonymousDisplayName } from "@/lib/identity";
+import { getVisitorId } from "@/lib/visitor";
 
 type AuthContextValue = {
   ready: boolean;
@@ -17,18 +19,19 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function userDisplayName(user: User | null) {
-  if (!user || user.is_anonymous) return "Anonymous bheda";
+function userDisplayName(user: User | null, fallbackSeed: string) {
+  if (!user || user.is_anonymous) return anonymousDisplayName(user?.id || fallbackSeed || "guest");
   const metadataName = [user.user_metadata?.display_name, user.user_metadata?.full_name, user.user_metadata?.name]
     .find((value) => typeof value === "string" && value.trim());
   if (typeof metadataName === "string") return metadataName.trim();
-  if (user.email) return user.email.split("@")[0] || "Signed-in bheda";
-  return "Signed-in bheda";
+  if (user.email) return user.email.split("@")[0] || "Registered user";
+  return "Registered user";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [anonymousSeed, setAnonymousSeed] = useState("guest");
   const [accountOpen, setAccountOpen] = useState(false);
   const [authError, setAuthError] = useState("");
   const [email, setEmail] = useState("");
@@ -36,19 +39,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const supabase = getSupabaseBrowser();
-    if (!supabase) {
+    setAnonymousSeed(getVisitorId() || "guest");
+    const client = getSupabaseBrowser();
+    if (!client) {
       setReady(true);
       return;
     }
 
     let mounted = true;
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = client.auth.onAuthStateChange((_event, nextSession) => {
       if (mounted) setSession(nextSession);
     });
 
     void (async () => {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await client.auth.getSession();
       if (!mounted) return;
 
       if (data.session) {
@@ -57,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: anonymousData, error } = await supabase.auth.signInAnonymously();
+      const { data: anonymousData, error } = await client.auth.signInAnonymously();
       if (!mounted) return;
       if (error) setAuthError("Anonymous access is temporarily unavailable.");
       setSession(anonymousData.session || null);
@@ -71,14 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const user = session?.user || null;
-  const displayName = useMemo(() => userDisplayName(user), [user]);
+  const displayName = useMemo(() => userDisplayName(user, anonymousSeed), [user, anonymousSeed]);
   const isAnonymous = !user || Boolean(user.is_anonymous);
 
   async function requestMagicLink() {
     const clean = email.trim().toLowerCase();
     if (!clean) return;
-    const supabase = getSupabaseBrowser();
-    if (!supabase) {
+    const client = getSupabaseBrowser();
+    if (!client) {
       setAuthError("Login is not available right now.");
       return;
     }
@@ -86,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSending(true);
     setAuthError("");
     setMessage("");
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await client.auth.signInWithOtp({
       email: clean,
       options: { emailRedirectTo: `${window.location.origin}/` },
     });
@@ -100,13 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function returnToAnonymous() {
-    const supabase = getSupabaseBrowser();
-    if (!supabase) return;
+    const client = getSupabaseBrowser();
+    if (!client) return;
     setSending(true);
     setAuthError("");
     setMessage("");
-    await supabase.auth.signOut();
-    const { error } = await supabase.auth.signInAnonymously();
+    await client.auth.signOut();
+    const { error } = await client.auth.signInAnonymously();
     if (error) setAuthError(error.message);
     setSending(false);
   }
@@ -129,11 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           <section className="accountPanel" role="dialog" aria-modal="true" aria-label="Bheda account">
             <button className="accountClose" onClick={() => setAccountOpen(false)} aria-label="Close account panel"><X size={20} /></button>
             <div className="accountIcon"><UserRound size={28} /></div>
-            <span className="eyebrow">Your bheda</span>
+            <span className="eyebrow">Your account</span>
             <h2>{displayName}</h2>
             <p className="accountIntro">
               {isAnonymous
-                ? "You are browsing as Anonymous bheda. You can like, comment and post without showing your identity."
+                ? `You are posting as ${displayName}. The random ID stays consistent on this account so conversations make sense without showing your identity.`
                 : `Signed in${user?.email ? ` as ${user.email}` : ""}.`}
             </p>
 
@@ -156,11 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ) : (
               <button className="authSecondary" onClick={returnToAnonymous} disabled={sending}>
                 {sending ? <LoaderCircle className="spin" size={18} /> : null}
-                Sign out to Anonymous bheda
+                Sign out and continue anonymously
               </button>
             )}
 
-            <p className="authNote">Your public display name stays Anonymous bheda unless you sign in.</p>
+            <p className="authNote">Posts and comments show your account name or your anonymous random ID.</p>
           </section>
         </div>
       ) : null}

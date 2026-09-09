@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Image as ImageIcon, Link2, LoaderCircle, Type, UploadCloud, Video } from "lucide-react";
+import { FormEvent, useMemo, useState } from "react";
+import { ArrowLeft, AudioLines, Image as ImageIcon, Link2, LoaderCircle, Type, UploadCloud, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
@@ -14,9 +14,12 @@ import { useAuth } from "./AuthProvider";
 const tabs: { value: MediaType; label: string; icon: typeof ImageIcon }[] = [
   { value: "image", label: "Image", icon: ImageIcon },
   { value: "video", label: "Video", icon: Video },
+  { value: "audio", label: "Audio", icon: AudioLines },
   { value: "embed", label: "Embed", icon: Link2 },
   { value: "text", label: "Text", icon: Type },
 ];
+
+const categories = ["Satire", "Politics", "Society", "Photos", "Screenshots", "Videos", "Audio", "Hot takes", "Internet archaeology"];
 
 export function PostComposer() {
   const router = useRouter();
@@ -28,15 +31,10 @@ export function PostComposer() {
   const [caption, setCaption] = useState("");
   const [category, setCategory] = useState("Satire");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [author, setAuthor] = useState("Anonymous bheda");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const previewUrl = useMemo(() => file ? URL.createObjectURL(file) : "", [file]);
-
-  useEffect(() => {
-    if (ready) setAuthor(displayName);
-  }, [displayName, ready]);
 
   async function uploadSelectedFile() {
     if (!file) return null;
@@ -46,11 +44,11 @@ export function PostComposer() {
       body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size, visitorId: getVisitorId() }),
     });
     const details = await prep.json();
-    if (!prep.ok) throw new Error(details.error || "Storage is not configured yet.");
+    if (!prep.ok) throw new Error(details.error || "Could not prepare upload.");
 
-    const supabase = getSupabaseBrowser();
-    if (!supabase) throw new Error("Upload service is not available right now.");
-    const { error: uploadError } = await supabase.storage
+    const client = getSupabaseBrowser();
+    if (!client) throw new Error("Upload service is not available right now.");
+    const { error: uploadError } = await client.storage
       .from("media")
       .uploadToSignedUrl(details.path, details.token, file, { contentType: file.type });
     if (uploadError) throw uploadError;
@@ -61,20 +59,19 @@ export function PostComposer() {
     e.preventDefault();
     setError("");
     if (!title.trim()) return setError("Give the post a title.");
-    if ((mediaType === "image" || mediaType === "video") && !file) return setError("Choose a file to upload.");
+    if (["image", "video", "audio"].includes(mediaType) && !file) return setError(`Choose an ${mediaType === "image" ? "image" : mediaType} file to upload.`);
     if (mediaType === "embed" && !normaliseEmbedUrl(embedInput)) return setError("Paste a valid YouTube or Vimeo link.");
 
     setBusy(true);
     try {
-      const mediaUrl = (mediaType === "image" || mediaType === "video") ? await uploadSelectedFile() : null;
+      const mediaUrl = ["image", "video", "audio"].includes(mediaType) ? await uploadSelectedFile() : null;
       const embedUrl = mediaType === "embed" ? normaliseEmbedUrl(embedInput) : null;
       const res = await authFetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(), caption: caption.trim(), category, mediaType,
-          mediaUrl, embedUrl, sourceUrl: sourceUrl.trim(), authorName: author.trim() || "Anonymous bheda",
-          visitorId: getVisitorId(),
+          mediaUrl, embedUrl, sourceUrl: sourceUrl.trim(), visitorId: getVisitorId(),
         }),
       });
       const data = await res.json();
@@ -88,11 +85,13 @@ export function PostComposer() {
     }
   }
 
+  const isUpload = ["image", "video", "audio"].includes(mediaType);
+
   return (
     <main className="composerPage">
       <div className="composerHeader">
         <Link href="/" className="iconButton"><ArrowLeft size={20} /></Link>
-        <div><span className="kicker">New post</span><h1>Put it on the board.</h1></div>
+        <div><span className="kicker">New bheda post</span><h1>Put the receipt on the board.</h1></div>
         <button type="button" className="composerAccount" onClick={openAccount}>{displayName}</button>
       </div>
 
@@ -106,14 +105,20 @@ export function PostComposer() {
             ))}
           </div>
 
-          {(mediaType === "image" || mediaType === "video") ? (
+          {isUpload ? (
             <label className="dropzone">
               {previewUrl ? (
-                mediaType === "image" ? <img src={previewUrl} alt="Preview" /> : <video src={previewUrl} controls />
+                mediaType === "image" ? <img src={previewUrl} alt="Preview" />
+                  : mediaType === "video" ? <video src={previewUrl} controls />
+                    : <div className="audioPreview"><AudioLines size={54} /><strong>{file?.name}</strong><audio src={previewUrl} controls /></div>
               ) : (
-                <div><UploadCloud size={38} /><strong>Drop or choose a {mediaType}</strong><span>Your media will be uploaded securely.</span></div>
+                <div><UploadCloud size={38} /><strong>Drop or choose {mediaType === "image" ? "an image" : `a ${mediaType}`}</strong><span>Your media will be uploaded securely.</span></div>
               )}
-              <input type="file" accept={mediaType === "image" ? "image/*" : "video/*"} onChange={(e) => setFile(e.target.files?.[0] || null)} />
+              <input
+                type="file"
+                accept={mediaType === "image" ? "image/*" : mediaType === "video" ? "video/*" : "audio/*"}
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
             </label>
           ) : null}
 
@@ -121,27 +126,28 @@ export function PostComposer() {
             <div className="embedField">
               <Link2 size={30} />
               <h2>Embed a video</h2>
-              <p>YouTube and Vimeo are supported out of the box.</p>
+              <p>YouTube and Vimeo links work here.</p>
               <input value={embedInput} onChange={(e) => setEmbedInput(e.target.value)} placeholder="https://youtube.com/watch?v=…" />
             </div>
           ) : null}
 
           {mediaType === "text" ? (
-            <div className="textPreview"><span>“</span><p>{caption || "Your gloriously unnecessary hot take appears here."}</p></div>
+            <div className="textPreview"><span>“</span><p>{caption || "Explain the bheda moment, add context, then let people decide."}</p></div>
           ) : null}
         </section>
 
         <section className="fieldsPanel">
-          <label>Title<input maxLength={180} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Write a headline…" /></label>
-          <label>Caption<textarea maxLength={1200} rows={5} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Add context, punchline or description…" /></label>
-          <div className="twoFields">
-            <label>Category<select value={category} onChange={(e) => setCategory(e.target.value)}><option>Satire</option><option>Photos</option><option>Screenshots</option><option>Videos</option><option>Hot takes</option><option>Internet archaeology</option></select></label>
-            <label>Posted by<input maxLength={60} value={author} onChange={(e) => setAuthor(e.target.value)} /></label>
-          </div>
-          <label>Original source <span className="optional">optional</span><input type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
+          <div className="postingAs"><span>Posting as</span><strong>{displayName}</strong></div>
+          <label>Title<input maxLength={180} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What is the bheda moment?" /></label>
+          <label>Context / caption
+            <textarea maxLength={1200} rows={6} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Explain what happened and why it matters. Use #hashtags and @mentions when useful…" />
+            <span className="fieldHint">#hashtags and @mentions become searchable links after publishing.</span>
+          </label>
+          <label>Category<select value={category} onChange={(e) => setCategory(e.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label>Original source <span className="optional">recommended</span><input type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" /></label>
           {error ? <div className="formError">{error}</div> : null}
           <button className="publishButton" disabled={busy || !ready}>{busy ? <><LoaderCircle className="spin" size={19} /> Publishing…</> : "Publish to bheda"}</button>
-          <p className="satireNote">Keep satire clearly satirical. Don’t post private information or copyrighted media you don’t have permission to share.</p>
+          <p className="satireNote">Bheda is for calling out herd-thinking, bad public claims and absurd ideas. Add context, avoid doxxing, and critique conduct or ideas rather than protected traits.</p>
         </section>
       </form>
     </main>

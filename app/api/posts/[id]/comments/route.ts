@@ -30,9 +30,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!db) return NextResponse.json({ demo: true });
 
   const { user, actorId } = await getRequestActor(request, db, fallbackVisitorId);
-  if (!actorId) return NextResponse.json({ error: "Missing bheda session." }, { status: 400 });
-  const requestedAuthor = String(body.authorName || "").trim().slice(0, 60);
-  const authorName = requestedAuthor || displayNameForUser(user);
+  if (!actorId) return NextResponse.json({ error: "Missing session." }, { status: 400 });
+  const authorName = displayNameForUser(user, actorId);
 
   try {
     const burst = await checkRateLimit(db, request, "comment_minute", 8, 60, actorId);
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { data, error } = await db.from("comments").insert({
     post_id: id, visitor_id: actorId, author_id: user?.id || null,
-    author_name: authorName || "Anonymous bheda", body: text,
+    author_name: authorName, body: text,
   }).select("id,post_id,author_id,author_name,body,created_at").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ comment: data }, { status: 201 });

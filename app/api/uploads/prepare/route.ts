@@ -4,13 +4,18 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkRateLimit } from "@/lib/requestSecurity";
 import { getRequestActor } from "@/lib/serverAuth";
 
-const allowed = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"]);
+const allowed = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "video/mp4", "video/webm", "video/quicktime",
+  "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm",
+]);
 const maxImageBytes = 15 * 1024 * 1024;
+const maxAudioBytes = 30 * 1024 * 1024;
 const maxVideoBytes = 120 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const db = getSupabaseAdmin();
-  if (!db) return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+  if (!db) return NextResponse.json({ error: "Upload service is not configured yet." }, { status: 503 });
 
   let body: Record<string, unknown>;
   try { body = await request.json(); }
@@ -21,15 +26,17 @@ export async function POST(request: NextRequest) {
   const contentType = String(body.contentType || "");
   const filename = String(body.filename || "file").slice(0, 180);
   const size = Number(body.size || 0);
-  if (!actorId) return NextResponse.json({ error: "Missing bheda session. Refresh and try again." }, { status: 400 });
+  if (!actorId) return NextResponse.json({ error: "Missing session. Refresh and try again." }, { status: 400 });
   if (!allowed.has(contentType)) return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
   if (!Number.isFinite(size) || size <= 0) return NextResponse.json({ error: "Invalid file size." }, { status: 400 });
 
   const isVideo = contentType.startsWith("video/");
-  const maxBytes = isVideo ? maxVideoBytes : maxImageBytes;
+  const isAudio = contentType.startsWith("audio/");
+  const maxBytes = isVideo ? maxVideoBytes : isAudio ? maxAudioBytes : maxImageBytes;
   if (size > maxBytes) {
     const mb = Math.round(maxBytes / 1024 / 1024);
-    return NextResponse.json({ error: `${isVideo ? "Video" : "Image"} uploads are limited to ${mb} MB.` }, { status: 413 });
+    const label = isVideo ? "Video" : isAudio ? "Audio" : "Image";
+    return NextResponse.json({ error: `${label} uploads are limited to ${mb} MB.` }, { status: 413 });
   }
 
   try {

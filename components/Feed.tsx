@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Flame, Images, MessageSquareText, MonitorPlay, Sparkles } from "lucide-react";
+import { AudioLines, Flame, Images, Landmark, MessageSquareText, MonitorPlay, Sparkles, UsersRound } from "lucide-react";
 import type { Post } from "@/lib/types";
 import { getVisitorId } from "@/lib/visitor";
 import { authFetch } from "@/lib/authFetch";
@@ -14,9 +14,12 @@ import { useAuth } from "./AuthProvider";
 const categories = [
   { label: "All", icon: Sparkles },
   { label: "Satire", icon: Flame },
-  { label: "Photos", icon: Images },
+  { label: "Politics", icon: Landmark },
+  { label: "Society", icon: UsersRound },
   { label: "Screenshots", icon: MessageSquareText },
+  { label: "Photos", icon: Images },
   { label: "Videos", icon: MonitorPlay },
+  { label: "Audio", icon: AudioLines },
 ];
 
 export function Feed({ initialPosts }: { initialPosts: Post[] }) {
@@ -41,7 +44,10 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return posts.filter((post) => {
-      const categoryMatch = category === "All" || post.category.toLowerCase() === category.toLowerCase() || (category === "Videos" && ["video", "embed"].includes(post.media_type));
+      const categoryMatch = category === "All"
+        || post.category.toLowerCase() === category.toLowerCase()
+        || (category === "Videos" && ["video", "embed"].includes(post.media_type))
+        || (category === "Audio" && post.media_type === "audio");
       const searchMatch = !q || `${post.title} ${post.caption || ""} ${post.author_name} ${post.category}`.toLowerCase().includes(q);
       return categoryMatch && searchMatch;
     });
@@ -63,6 +69,14 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
     setTimeout(() => searchRef.current?.focus(), 180);
   }
 
+  function filterToken(token: string) {
+    setSearch(token);
+    setCategory("All");
+    setActivePost(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => searchRef.current?.focus(), 180);
+  }
+
   function openRandom() {
     const pool = filtered.length ? filtered : posts;
     if (!pool.length) return;
@@ -77,9 +91,9 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
         <section className="heroCopy">
           <div>
             <span className="kicker">bheda.me</span>
-            <h1>The internet,<br /><em>slightly roasted.</em></h1>
+            <h1>Herd thinking,<br /><em>meet receipts.</em></h1>
           </div>
-          <p>Photos, screenshots, video, memes and takes that probably should have stayed in the group chat.</p>
+          <p>Screenshots, clips, audio and posts that call out political fanboying, bad takes and absurd ideas — with context, satire and receipts.</p>
         </section>
 
         <div className="categoryScroller" id="fresh">
@@ -93,12 +107,12 @@ export function Feed({ initialPosts }: { initialPosts: Post[] }) {
         {loading ? <div className="loadingLine"><span /></div> : null}
         {filtered.length ? (
           <section className="masonryFeed" aria-label="Bheda posts">
-            {filtered.map((post) => <PostCard key={post.id} post={post} onOpen={setActivePost} onChanged={replacePost} />)}
+            {filtered.map((post) => <PostCard key={post.id} post={post} onOpen={setActivePost} onChanged={replacePost} onToken={filterToken} />)}
           </section>
-        ) : <div className="emptyFeed"><span>B.</span><h2>No bheda posts here.</h2><p>Try another search or category.</p></div>}
+        ) : <div className="emptyFeed"><span>B.</span><h2>No bheda posts here.</h2><p>Try another search, hashtag, mention or category.</p></div>}
       </main>
       <BottomNav onHome={goHome} onSearch={focusSearch} onRandom={openRandom} />
-      {activePost ? <PostDetail post={activePost} onClose={() => setActivePost(null)} onChanged={replacePost} /> : null}
+      {activePost ? <PostDetail post={activePost} onClose={() => setActivePost(null)} onChanged={replacePost} onToken={filterToken} /> : null}
     </>
   );
 }

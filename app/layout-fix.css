@@ -1,43 +1,46 @@
-/* Desktop feed breakout: keep the Pinterest-style masonry but force it to use the viewport. */
+/* Full-width responsive masonry grid. Unlike CSS multi-columns, this keeps
+   large screens filled even when the feed has only a handful of posts. */
 .pageShell {
   width: 100%;
   max-width: none;
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 18px;
-  padding-right: 18px;
+  margin: 0;
+  padding-left: clamp(12px, 1.4vw, 28px);
+  padding-right: clamp(12px, 1.4vw, 28px);
 }
 
 .masonryFeed {
   width: 100%;
   max-width: none;
-  column-width: auto;
-  column-count: 8;
-  column-gap: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-auto-rows: 8px;
+  column-gap: clamp(12px, 1vw, 20px);
+  row-gap: 10px;
+  align-items: start;
 }
 
-@media (max-width: 2350px) {
-  .masonryFeed { column-count: 7; }
+.masonryFeed .pinCard {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  align-self: start;
+  break-inside: auto;
 }
 
-@media (max-width: 2050px) {
-  .masonryFeed { column-count: 6; }
+/* At ultra-wide sizes keep useful card density instead of leaving a blank
+   right half of the viewport. auto-fit stretches the available tracks. */
+@media (min-width: 1800px) {
+  .masonryFeed { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .heroCopy { padding-left: 8px; padding-right: 8px; }
 }
 
-@media (max-width: 1750px) {
-  .masonryFeed { column-count: 5; }
-}
-
-@media (max-width: 1450px) {
-  .masonryFeed { column-count: 4; }
-}
-
-@media (max-width: 1120px) {
-  .masonryFeed { column-count: 3; }
+@media (min-width: 2600px) {
+  .masonryFeed { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 }
 
 @media (max-width: 900px) {
-  .masonryFeed { column-count: 2; }
+  .masonryFeed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 650px) {
@@ -46,17 +49,45 @@
     padding-left: 8px;
     padding-right: 8px;
   }
-
   .masonryFeed {
-    column-count: 1;
-    column-gap: 0;
+    display: block;
+  }
+  .masonryFeed .pinCard {
+    grid-row-end: auto !important;
+    margin-bottom: 28px;
   }
 }
 
-/* Give large desktop post previews more room while keeping the full media visible. */
 @media (min-width: 1100px) {
   .detailModal {
     width: min(1540px, calc(100vw - 48px));
     height: min(900px, calc(100vh - 48px));
   }
+}
+
+/* v4 media, identity and tag enhancements */
+.cardOverlay { pointer-events: none; }
+.inlineToken { color: var(--accent-dark); font-weight: 800; }
+.inlineTokenButton { border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer; font: inherit; }
+.inlineTokenButton:hover { text-decoration: underline; }
+.postingAs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 16px; background: #f0f0ec; margin-bottom: 4px; }
+.postingAs span, .commentIdentity { color: #777; font-size: 12px; }
+.postingAs strong, .commentIdentity strong { color: var(--ink); }
+.fieldHint { display: block; color: #8a8a84; font-size: 11px; font-weight: 600; margin-top: 6px; line-height: 1.35; }
+.commentIdentity { padding: 0 5px 8px; }
+.audioPost { width: 100%; min-height: 280px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px; background: linear-gradient(145deg, #171717, #38243f 55%, #ff4f79); color: white; }
+.audioPost.compact { min-height: 250px; padding: 22px; }
+.audioArtwork { width: 76px; height: 76px; border-radius: 24px; display: grid; place-items: center; background: rgba(255,255,255,.14); backdrop-filter: blur(8px); }
+.audioPost.compact .audioArtwork { width: 62px; height: 62px; border-radius: 20px; }
+.audioCopy { display: flex; flex-direction: column; gap: 4px; }
+.audioCopy span { text-transform: uppercase; letter-spacing: .14em; font-size: 10px; font-weight: 900; opacity: .72; }
+.audioCopy strong { font-size: 18px; line-height: 1.15; }
+.audioPost audio { width: 100%; position: relative; z-index: 2; }
+.audioPreview { width: min(520px, 90%); padding: 32px; display: flex !important; flex-direction: column; gap: 16px !important; align-items: center; }
+.audioPreview audio { width: 100%; }
+.detailMediaPanel .audioPost { width: 100%; height: 100%; min-height: 0; }
+
+@media (max-width: 650px) {
+  .audioPost { min-height: 230px; border-radius: inherit; }
+  .audioPost.compact { min-height: 220px; }
 }
