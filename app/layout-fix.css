@@ -1,20 +1,18 @@
-/* Full-width responsive masonry grid. Unlike CSS multi-columns, this keeps
-   large screens filled even when the feed has only a handful of posts. */
+/* Centered Pinterest-style content shell: wide enough for a dense board but never edge-to-edge. */
 .pageShell {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding-left: clamp(12px, 1.4vw, 28px);
-  padding-right: clamp(12px, 1.4vw, 28px);
+  width: min(1500px, calc(100% - 48px));
+  max-width: 1500px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .masonryFeed {
   width: 100%;
-  max-width: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   grid-auto-rows: 8px;
-  column-gap: clamp(12px, 1vw, 20px);
+  column-gap: 18px;
   row-gap: 10px;
   align-items: start;
 }
@@ -28,53 +26,44 @@
   break-inside: auto;
 }
 
-/* At ultra-wide sizes keep useful card density instead of leaving a blank
-   right half of the viewport. auto-fit stretches the available tracks. */
 @media (min-width: 1800px) {
-  .masonryFeed { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-  .heroCopy { padding-left: 8px; padding-right: 8px; }
-}
-
-@media (min-width: 2600px) {
-  .masonryFeed { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .pageShell { width: min(1580px, calc(100% - 120px)); max-width: 1580px; }
+  .masonryFeed { grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); }
 }
 
 @media (max-width: 900px) {
+  .pageShell { width: calc(100% - 24px); }
   .masonryFeed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 650px) {
-  .pageShell {
-    width: 100%;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-  .masonryFeed {
-    display: block;
-  }
-  .masonryFeed .pinCard {
-    grid-row-end: auto !important;
-    margin-bottom: 28px;
-  }
+  .pageShell { width: 100%; padding-left: 8px; padding-right: 8px; }
+  .masonryFeed { display: block; }
+  .masonryFeed .pinCard { grid-row-end: auto !important; margin-bottom: 28px; }
 }
 
-@media (min-width: 1100px) {
+/* Details stay centered and deliberately narrower than the viewport, including direct /p/:id pages. */
+@media (min-width: 900px) {
   .detailModal {
-    width: min(1540px, calc(100vw - 48px));
-    height: min(900px, calc(100vh - 48px));
+    width: min(1180px, calc(100vw - 120px));
+    height: min(820px, calc(100vh - 80px));
+  }
+  .singlePostPage .detailModal {
+    width: min(1060px, calc(100vw - 160px));
   }
 }
 
-/* v4 media, identity and tag enhancements */
 .cardOverlay { pointer-events: none; }
-.inlineToken { color: var(--accent-dark); font-weight: 800; }
+.inlineToken { color: var(--accent-dark); font-weight: 850; }
 .inlineTokenButton { border: 0; padding: 0; margin: 0; background: transparent; cursor: pointer; font: inherit; }
 .inlineTokenButton:hover { text-decoration: underline; }
+
 .postingAs { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 16px; background: #f0f0ec; margin-bottom: 4px; }
 .postingAs span, .commentIdentity { color: #777; font-size: 12px; }
 .postingAs strong, .commentIdentity strong { color: var(--ink); }
 .fieldHint { display: block; color: #8a8a84; font-size: 11px; font-weight: 600; margin-top: 6px; line-height: 1.35; }
 .commentIdentity { padding: 0 5px 8px; }
+
 .audioPost { width: 100%; min-height: 280px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; gap: 16px; background: linear-gradient(145deg, #171717, #38243f 55%, #ff4f79); color: white; }
 .audioPost.compact { min-height: 250px; padding: 22px; }
 .audioArtwork { width: 76px; height: 76px; border-radius: 24px; display: grid; place-items: center; background: rgba(255,255,255,.14); backdrop-filter: blur(8px); }
@@ -87,7 +76,41 @@
 .audioPreview audio { width: 100%; }
 .detailMediaPanel .audioPost { width: 100%; height: 100%; min-height: 0; }
 
+.feedTools { margin-bottom: 6px; }
+.categorySearchBox { width: min(280px, 100%); height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 12px; margin: 0 6px 5px; border: 1px solid var(--line); background: white; border-radius: 999px; color: #777; }
+.categorySearchBox input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-weight: 650; }
+
+.contributorsStrip { display: flex; align-items: center; gap: 14px; padding: 8px 6px 22px; overflow-x: auto; scrollbar-width: none; }
+.contributorsStrip::-webkit-scrollbar { display: none; }
+.contributorsTitle { display: flex; align-items: center; gap: 7px; min-width: max-content; font-size: 13px; }
+.contributorsList { display: flex; gap: 8px; }
+.contributorPill { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 8px 11px; display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+.contributorPill > span { width: 21px; height: 21px; display: grid; place-items: center; border-radius: 50%; background: var(--acid); font-size: 11px; font-weight: 900; }
+.contributorPill strong { font-size: 12px; }
+.contributorPill small { color: #888; }
+
+.notificationWrap { position: relative; }
+.notificationBadge { position: absolute; top: 3px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: 9px; font-weight: 900; box-shadow: 0 0 0 2px var(--paper); }
+.notificationPanel { position: absolute; z-index: 90; right: 0; top: 50px; width: min(380px, calc(100vw - 24px)); max-height: 480px; overflow-y: auto; background: white; border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow); padding: 10px; }
+.notificationHead { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 10px; }
+.notificationHead button { border: 0; background: transparent; cursor: pointer; }
+.notificationItem { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border-radius: 14px; font-size: 13px; line-height: 1.35; }
+.notificationItem:hover { background: #f3f3ef; }
+.notificationIcon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 50%; background: #f0f0ec; font-weight: 900; }
+.notificationIcon.reaction { background: #efffd0; color: #466000; }
+.notificationEmpty { padding: 30px 12px; text-align: center; color: #888; font-size: 13px; }
+.markRead { width: 100%; border: 0; background: #f1f1ed; border-radius: 12px; padding: 9px; font-weight: 750; cursor: pointer; }
+
+.liveTokenPreview { margin-top: 8px; min-height: 34px; border-radius: 12px; background: #f6f6f2; padding: 8px 10px; font-size: 12px; line-height: 1.5; color: #5c5c58; }
+.liveTokenPreview:empty { display: none; }
+.liveTokenPreview strong { color: var(--accent-dark); font-weight: 900; }
+.categoryCombo { position: relative; }
+.categoryCombo input { width: 100%; }
+.languageButton { font-weight: 800; }
+
 @media (max-width: 650px) {
   .audioPost { min-height: 230px; border-radius: inherit; }
   .audioPost.compact { min-height: 220px; }
+  .languageButton { display: none; }
+  .contributorsStrip { padding-left: 2px; padding-right: 2px; }
 }
